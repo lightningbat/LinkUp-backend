@@ -1,10 +1,10 @@
-const userAccount_schema = require("../schemas/userAccount_schema");
+const userAccount_schema = require("../../schemas/userAccount_schema");
 const bcrypt = require("bcrypt");
 const router = require("express").Router();
-const client = require('../config/database');
+const client = require('../../config/database');
 
-const OTP_Mailer = require("../utils/otp_mailer");
-const generateOTP = require("../utils/opt_generator");
+const OTP_Mailer = require("../../utils/otp_mailer");
+const generateOTP = require("../../utils/opt_generator");
 
 function ifAllDataExists(data) {
     if (!data.username) return {type: "username", message: "Please provide a username"}

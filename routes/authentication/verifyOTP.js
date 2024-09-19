@@ -1,5 +1,5 @@
-const { email_schema, otp_schema } = require("../schemas");
-const client = require('../config/database');
+const { email_schema, otp_schema } = require("../../schemas");
+const client = require('../../config/database');
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 

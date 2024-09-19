@@ -45,12 +45,12 @@ app.use(express.json({ limit: "5kb" }));
 app.use(limiter)
 
 
-app.use("/register", require('./routes/register'));
-app.use("/login", require('./routes/login'));
-app.use("/verifyOTP", require('./routes/verifyOTP'));
-app.use("/resendOTP", require('./routes/resendOTP'));
-app.use("/forgot-password", require('./routes/forgotPass'));
-app.use("/reset-password", require('./routes/resetPass'));
+app.use("/register", require('./routes/authentication/register'));
+app.use("/login", require('./routes/authentication/login'));
+app.use("/verifyOTP", require('./routes/authentication/verifyOTP'));
+app.use("/resendOTP", require('./routes/authentication/resendOTP'));
+app.use("/forgot-password", require('./routes/authentication/forgotPass'));
+app.use("/reset-password", require('./routes/authentication/resetPass'));
 
 
 

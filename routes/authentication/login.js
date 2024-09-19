@@ -1,11 +1,11 @@
-const userAccount_schema = require("../schemas/userAccount_schema");
+const userAccount_schema = require("../../schemas/userAccount_schema");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const router = require("express").Router();
-const client = require('../config/database');
+const client = require('../../config/database');
 
-const OTP_Mailer = require("../utils/otp_mailer");
-const generateOTP = require("../utils/opt_generator");
+const OTP_Mailer = require("../../utils/otp_mailer");
+const generateOTP = require("../../utils/opt_generator");
 
 function ifAllDataExists(data) {
     if (!data.email) return { type: "email", message: "Please provide an email" }
