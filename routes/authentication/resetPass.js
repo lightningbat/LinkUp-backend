@@ -17,28 +17,27 @@ router.post("/", async (req, res) => {
         try { await password_schema.validateAsync(req.body); }
         catch (err) { return res.status(400).json({ type: err.details[0].context.label, message: err.message }); }
 
+        let userId;
         // verifying token without throwing an error
         try {
-            jwt.verify(token, process.env.PASS_RESET_TOKEN_KEY);
+            userId = jwt.verify(token, process.env.PASS_RESET_TOKEN_KEY).user_id;
         }
         catch (err) {
             return res.status(400).json({ type: "token", message: "Invalid Token. Please Request New Token" });
         }
 
-        const email = jwt.verify(token, process.env.PASS_RESET_TOKEN_KEY).email;
-
         // database collection
         const accounts_coll = client.db("LinkUp").collection("accounts");
 
-        // checking if email exist
-        const account_obj = await accounts_coll.findOne({ email: email }, { projection: { _id: 0 } });
+        // checking if account exist
+        const account_obj = await accounts_coll.findOne({ user_id: userId }, { projection: { _id: 0 } });
         if (!account_obj) {
             return res.status(400).json({ type: "email", message: "Email Does Not Exist. Please Register" });
         }
 
         // replacing password with hashed password
         account_obj.password = await bcrypt.hash(new_password, 10);
-        await accounts_coll.updateOne({ email: email }, { $set: { password: account_obj.password } });
+        await accounts_coll.updateOne({ user_id: userId }, { $set: { password: account_obj.password } });
 
         res.status(200).send();
     }

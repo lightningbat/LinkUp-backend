@@ -45,7 +45,7 @@ router.post("/", async (req, res) => {
         if (otp < 5000) {
             // generated otp from 1000 to 4999 are for verification
             const token = jwt.sign(
-                { email: email, username: account_info.username },
+                { user_id: account_info.user_id },
                 process.env.TOKEN_KEY
             );
             return res.status(200).send({ token });
@@ -53,7 +53,7 @@ router.post("/", async (req, res) => {
         else if (otp >= 5000 && otp < 10000) {
             // generated otp from 5000 to 9999 are for password reset
             const token = jwt.sign(
-                { email: email, username: account_info.username },
+                { user_id: account_info.user_id },
                 process.env.PASS_RESET_TOKEN_KEY,
                 { expiresIn: "10m" }
             );

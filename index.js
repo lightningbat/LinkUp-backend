@@ -5,7 +5,6 @@ const cors = require('cors');
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 const { rateLimit } = require('express-rate-limit');
-const { type } = require('os');
 
 const app = express();
 const httpServer = createServer(app);
