@@ -5,6 +5,7 @@ const cors = require('cors');
 const { createServer } = require("http");
 const { Server } = require("socket.io");
 const { rateLimit } = require('express-rate-limit');
+const authenticator = require('./middlewares/auth');
 
 const app = express();
 const httpServer = createServer(app);
@@ -39,9 +40,15 @@ const limiter = rateLimit({
     }
 })
 
-
-app.use(express.json({ limit: "5kb" }));
+app.use(express.json())
 app.use(limiter)
+app.use((req, res, next) => {
+    const excluded_route = ['setProfilePic'];
+    if (excluded_route.includes(req.path)) {
+        express.limit("200kb")
+    }
+    express.limit("5kb");
+});
 
 
 app.use("/register", require('./routes/authentication/register'));
@@ -51,6 +58,7 @@ app.use("/resendOTP", require('./routes/authentication/resendOTP'));
 app.use("/forgot-password", require('./routes/authentication/forgotPass'));
 app.use("/reset-password", require('./routes/authentication/resetPass'));
 
+app.use(authenticator);
 
 
 
