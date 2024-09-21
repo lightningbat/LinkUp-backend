@@ -6,6 +6,7 @@ const { createServer } = require("http");
 const { Server } = require("socket.io");
 const { rateLimit } = require('express-rate-limit');
 const authenticator = require('./middlewares/auth');
+const sizeof = require('object-sizeof');
 
 const app = express();
 const httpServer = createServer(app);
@@ -43,12 +44,21 @@ const limiter = rateLimit({
 app.use(express.json())
 app.use(limiter)
 app.use((req, res, next) => {
-    const excluded_route = ['setProfilePic'];
+    const excluded_route = ['/setProfilePic'];
+    console.log("payload size : ", sizeof(req.body));
     if (excluded_route.includes(req.path)) {
-        express.limit("200kb")
+        if (sizeof(req.body) > 200000) { // 200kb
+            return res.status(400).json({ type: "size limit", message: "Request too large. Please try again later" });
+        }
+        next();
     }
-    express.limit("5kb");
-});
+    else {
+        if (sizeof(req.body) > 5000) { // 500 bytes
+            return res.status(400).json({ type: "size limit", message: "Request too large. Please try again later" });
+        }
+        next();
+    }
+})
 
 
 app.use("/register", require('./routes/authentication/register'));
@@ -60,7 +70,7 @@ app.use("/reset-password", require('./routes/authentication/resetPass'));
 
 app.use(authenticator);
 
-
+app.use("/setProfilePic", require('./routes/service/setProfilePic'));
 
 const io = new Server(httpServer, {
     cors: {

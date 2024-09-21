@@ -38,6 +38,9 @@ router.post("/", async (req, res) => {
 
         // verifying email if not verified
         const account_info = await accounts_coll.findOne({ email: email }, { projection: { _id: 0 } });
+        if (!account_info) {
+            return res.status(400).json({ type: "email", message: "Email Does Not Exist. Please Register" });
+        }
         if (!account_info.verified) {
             await accounts_coll.updateOne({ email: email }, { $set: { verified: true } });
         }
