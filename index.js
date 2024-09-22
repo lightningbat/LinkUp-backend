@@ -33,7 +33,7 @@ client.connect()
 const min = 1
 const limiter = rateLimit({
 	windowMs: min * 60 * 1000, // 1 minutes
-	limit: 5, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+	limit: 10, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
 	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req, res, next) => {
@@ -45,7 +45,7 @@ app.use(express.json())
 app.use(limiter)
 app.use((req, res, next) => {
     const excluded_route = ['/setProfilePic'];
-    console.log("payload size : ", sizeof(req.body));
+    // console.log("payload size : ", sizeof(req.body));
     if (excluded_route.includes(req.path)) {
         if (sizeof(req.body) > 200000) { // 200kb
             return res.status(400).json({ type: "size limit", message: "Request too large. Please try again later" });

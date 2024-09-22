@@ -3,6 +3,7 @@ const bcrypt = require("bcrypt");
 const router = require("express").Router();
 const client = require('../../config/database');
 const crypto = require("crypto");
+const bgColor_list = require('../../static/accounts_profile_bg_colors.json')
 
 const OTP_Mailer = require("../../utils/otp_mailer");
 const generateOTP = require("../../utils/opt_generator");
@@ -42,9 +43,10 @@ router.post("/", async (req, res) => {
         account_info.password = await bcrypt.hash(account_info.password, 10);
 
         const random_id = crypto.randomBytes(16).toString("hex");
+        const random_bgColor = bgColor_list[Math.floor(Math.random() * bgColor_list.length)];
 
         //  adding date created field to the user account
-        account_info = { ...account_info, user_id: random_id, date_created: new Date().toUTCString(), verified: false };
+        account_info = { ...account_info, user_id: random_id, bgColor: random_bgColor, date_created: new Date().toUTCString(), verified: false };
 
         // saving user information and creating doc
         await accounts_coll.insertOne(account_info);
