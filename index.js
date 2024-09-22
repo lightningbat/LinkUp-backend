@@ -71,6 +71,7 @@ app.use("/reset-password", require('./routes/authentication/resetPass'));
 app.use(authenticator);
 
 app.use("/setProfilePic", require('./routes/service/setProfilePic'));
+app.use("/deleteProfilePic", require('./routes/service/delProfilePic'));
 
 const io = new Server(httpServer, {
     cors: {

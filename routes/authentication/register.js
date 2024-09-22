@@ -7,6 +7,7 @@ const bgColor_list = require('../../static/accounts_profile_bg_colors.json')
 
 const OTP_Mailer = require("../../utils/otp_mailer");
 const generateOTP = require("../../utils/opt_generator");
+const { profile } = require("console");
 
 function ifAllDataExists(data) {
     if (!data.username) return {type: "username", message: "Please provide a username"}
@@ -46,7 +47,7 @@ router.post("/", async (req, res) => {
         const random_bgColor = bgColor_list[Math.floor(Math.random() * bgColor_list.length)];
 
         //  adding date created field to the user account
-        account_info = { ...account_info, user_id: random_id, bgColor: random_bgColor, date_created: new Date().toUTCString(), verified: false };
+        account_info = { ...account_info, user_id: random_id, profile_img: null, bgColor: random_bgColor, date_created: new Date().toUTCString(), verified: false };
 
         // saving user information and creating doc
         await accounts_coll.insertOne(account_info);
