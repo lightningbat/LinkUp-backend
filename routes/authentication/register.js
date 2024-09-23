@@ -1,4 +1,4 @@
-const userAccount_schema = require("../../schemas/userAccount_schema");
+const userAccount_schema = require("../../schemas/userAccount_Schema");
 const bcrypt = require("bcrypt");
 const router = require("express").Router();
 const client = require('../../config/database');
@@ -7,10 +7,10 @@ const bgColor_list = require('../../static/accounts_profile_bg_colors.json')
 
 const OTP_Mailer = require("../../utils/otp_mailer");
 const generateOTP = require("../../utils/opt_generator");
-const { profile } = require("console");
+const username_generator = require("../../utils/user_name");
 
 function ifAllDataExists(data) {
-    if (!data.username) return {type: "username", message: "Please provide a username"}
+    if (!data.display_name) return {type: "display_name", message: "Please provide a username"}
     if (!data.email) return {type: "email", message: "Please provide an email"}
     if (!data.password) return {type: "password", message: "Please provide a password"}
     return true;
@@ -18,7 +18,7 @@ function ifAllDataExists(data) {
 
 router.post("/", async (req, res) => {
     try {
-        // req.body = {username, email, password}
+        // req.body = {display_name, email, password}
 
         const allDataExists = ifAllDataExists(req.body);
         if (allDataExists !== true) return res.status(400).json(allDataExists);
@@ -45,9 +45,10 @@ router.post("/", async (req, res) => {
 
         const random_id = crypto.randomBytes(16).toString("hex");
         const random_bgColor = bgColor_list[Math.floor(Math.random() * bgColor_list.length)];
+        const username = await username_generator(account_info.display_name);
 
         //  adding date created field to the user account
-        account_info = { ...account_info, user_id: random_id, profile_img: null, bgColor: random_bgColor, date_created: new Date().toUTCString(), verified: false };
+        account_info = { ...account_info, username, user_id: random_id, profile_img: null, bgColor: random_bgColor, date_created: new Date().toUTCString(), verified: false };
 
         // saving user information and creating doc
         await accounts_coll.insertOne(account_info);
