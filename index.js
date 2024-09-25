@@ -33,7 +33,7 @@ client.connect()
 const min = 1
 const limiter = rateLimit({
 	windowMs: min * 60 * 1000, // 1 minutes
-	limit: 10, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+	limit: 20, // Limit each IP to x requests per `window` (here, per y minutes)
 	standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
 	legacyHeaders: false, // Disable the `X-RateLimit-*` headers
     handler: (req, res, next) => {
@@ -72,6 +72,7 @@ app.use(authenticator);
 
 app.use("/setProfilePic", require('./routes/service/setProfilePic'));
 app.use("/deleteProfilePic", require('./routes/service/delProfilePic'));
+app.use("/getUser", require('./routes/service/getUser'));
 
 const io = new Server(httpServer, {
     cors: {

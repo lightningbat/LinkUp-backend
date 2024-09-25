@@ -1,4 +1,4 @@
-const userAccount_schema = require("../../schemas/userAccount_schema");
+const userAccount_schema = require("../../schemas/userAccount_Schema");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const router = require("express").Router();
@@ -23,8 +23,8 @@ router.post("/", async (req, res) => {
         // database collections
         const accounts_coll = client.db("LinkUp").collection("accounts");
 
-        // adding a temporary username as input-validator throws an error for blank field
-        req.body.username = "abcdefgh"
+        // adding a temporary display_name as input-validator throws an error for blank field
+        req.body.display_name = "abcdefgh"
 
         // validating data
         let account_info;
