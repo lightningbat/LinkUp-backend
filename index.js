@@ -8,6 +8,8 @@ const { rateLimit } = require('express-rate-limit');
 const authenticator = require('./middlewares/auth');
 const sizeof = require('object-sizeof');
 
+const jwt = require("jsonwebtoken");
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -77,13 +79,57 @@ app.use("/getUser", require('./routes/service/getUser'));
 const io = new Server(httpServer, {
     cors: {
         origin: "*",
-        methods: ["GET", "POST"],
+        methods: ["POST"],
     },
 });
 
-io.on("connection", (socket) => {
-    console.log(`Client connected: ${socket.id}`);
+io.use(function(socket, next) {
+    const token = socket.handshake.auth.token;
+    if (token) {
+        jwt.verify(token, process.env.TOKEN_KEY, function(err, decoded) {
+            if (err) {
+                return next(new Error("Invalid token"));
+            }
+            socket.user = decoded;
+            next();
+        });
+    } else {
+        next(new Error("Token not found"));
+    }
+})
+
+const accounts_coll = client.db("LinkUp").collection("accounts");
+
+async function getBasicUserInfo(user_id) {
+    const result = await accounts_coll.findOne({ user_id }, { projection: { 
+        _id: 0, display_name: 1, username: 1, email: 1
+    } });
+    return result;
+}
+
+async function updateSocketIdOfUser(method, user_id, socket_id) {
+    if (method === "add") {
+        await accounts_coll.updateOne({ user_id }, { $push: { socket_ids: socket_id } });
+    } else if (method === "remove") {
+        await accounts_coll.updateOne({ user_id }, { $pull: { socket_ids: socket_id } });
+    }
+}
+
+io.on("connection", async (socket) => {
+    const basicUserInfo = await getBasicUserInfo(socket.user.user_id);
+    await updateSocketIdOfUser('add', socket.user.user_id, socket.id);
+    console.log("a user connected");
+    console.table({...basicUserInfo, socket_id: socket.id});
+
+
+    socket.on("disconnect", async (reason) => {
+        await updateSocketIdOfUser('remove', socket.user.user_id, socket.id);
+        console.log("a user disconnected");
+        console.table({...basicUserInfo, socket_id: socket.id});
+        console.log(reason);
+    });
 });
+
 
 const port = process.env.PORT || 3000;
 

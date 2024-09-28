@@ -47,10 +47,19 @@ router.post("/", async (req, res) => {
         const random_bgColor = bgColor_list[Math.floor(Math.random() * bgColor_list.length)];
         const username = await username_generator(account_info.display_name);
 
-        //  adding date created field to the user account
-        account_info = { ...account_info, username, user_id: random_id, profile_img: null, bgColor: random_bgColor, date_created: new Date().toUTCString(), verified: false };
+        account_info = {
+            user_id: random_id,
+            display_name: account_info.display_name,
+            username: username,
+            email: account_info.email,
+            password: account_info.password,
+            profile_img: null,
+            bgColor: random_bgColor,
+            date_created: new Date().toUTCString(),
+            verified: false
+        }
 
-        // saving user information and creating doc
+        // adding user to database
         await accounts_coll.insertOne(account_info);
 
         const otp = generateOTP(type = "registration", email = account_info.email);
