@@ -127,6 +127,7 @@ io.on("connection", async (socket) => {
         console.log("a user disconnected");
         console.table({...basicUserInfo, socket_id: socket.id});
         console.log(reason);
+        accounts_coll.updateOne({ user_id: socket.user.user_id }, { $set: { last_seen: new Date() }});
     });
 });
 

@@ -4,6 +4,7 @@ const router = require("express").Router();
 const client = require('../../config/database');
 const crypto = require("crypto");
 const bgColor_list = require('../../static/accounts_profile_bg_colors.json')
+const base_user_settings = require('../../static/base_user_settings.json');
 
 const OTP_Mailer = require("../../utils/otp_mailer");
 const generateOTP = require("../../utils/opt_generator");
@@ -56,7 +57,8 @@ router.post("/", async (req, res) => {
             profile_img: null,
             bgColor: random_bgColor,
             date_created: new Date().toUTCString(),
-            verified: false
+            verified: false,
+            settings: base_user_settings
         }
 
         // adding user to database
