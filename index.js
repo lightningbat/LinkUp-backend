@@ -10,7 +10,7 @@ const sizeof = require('object-sizeof');
 
 const jwt = require("jsonwebtoken");
 
-const { black, green, bgGreen, red, bgRed } = require('ansis')
+const { black, bgGreen, bgRed } = require('ansis')
 
 const app = express();
 const httpServer = createServer(app);
@@ -122,8 +122,9 @@ const removeSocketIds = async (user_id, socket_ids) => {
 async function getInActiveSocketIds(user_socket_ids) {
     if (!user_socket_ids.length) return [];
 
+    // getting list of all connected socket ids
     const all_socket_ids = Array.from(await io.allSockets());
-
+    // removing active socket ids
     user_socket_ids = user_socket_ids.filter((socket_id) => {
         return !all_socket_ids.includes(socket_id);
     })
@@ -132,23 +133,41 @@ async function getInActiveSocketIds(user_socket_ids) {
 }
 
 io.on("connection", async (socket) => {
+    // getting basic user info from database
     const basicUserInfo = await getBasicUserInfo(socket.user.user_id);
+    const active_user_sockets = basicUserInfo.socket_ids ? basicUserInfo.socket_ids : [];
+    
+    console.log(black.bgGreen(basicUserInfo.username));
 
-    try {
-        const filtered_socket_ids = await getInActiveSocketIds(basicUserInfo.socket_ids);
+    // removing inactive socket ids
+    if (active_user_sockets.length) {
+        const filtered_socket_ids = await getInActiveSocketIds(active_user_sockets);
         if (filtered_socket_ids) {
+            // locally managing active socket ids
+            active_user_sockets.filter((socket_id) => {
+                return !filtered_socket_ids.includes(socket_id);
+            })
             await removeSocketIds(socket.user.user_id, filtered_socket_ids);
         }
-    } catch (err) {}
+    }
 
+    // adding active socket ids to local list
+    active_user_sockets.push(socket.id);
+    // updating socket ids in database
     await addSocketId(socket.user.user_id, socket.id);
-    console.log(black.bgGreen(basicUserInfo.username));
-    // const all_sockets = await io.allSockets();
+
 
     socket.on("disconnect", async (reason) => {
-        await removeSocketIds(socket.user.user_id, [socket.id]);
         console.log(black.bgRed(basicUserInfo.username));
-        accounts_coll.updateOne({ user_id: socket.user.user_id }, { $set: { last_seen: new Date() } });
+
+        // locally managing active socket ids
+        active_user_sockets.splice(active_user_sockets.indexOf(socket.id), 1);
+        // updating socket ids in database
+        await removeSocketIds(socket.user.user_id, [socket.id]);
+        // updating last seen time, if no active connections
+        if (active_user_sockets.length === 0) {
+            accounts_coll.updateOne({ user_id: socket.user.user_id }, { $set: { last_seen: new Date() } });
+        }
     });
 });
 
