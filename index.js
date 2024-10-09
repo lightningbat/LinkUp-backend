@@ -77,6 +77,8 @@ app.use(authenticator);
 app.use("/setProfilePic", require('./routes/service/setProfilePic'));
 app.use("/deleteProfilePic", require('./routes/service/delProfilePic'));
 app.use("/getUser", require('./routes/service/getUser'));
+app.use("/findUser", require('./routes/service/findUser'));
+app.use("/addContact", require('./routes/service/addContact'));
 
 const io = new Server(httpServer, {
     cors: {

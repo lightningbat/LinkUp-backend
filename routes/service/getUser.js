@@ -1,5 +1,4 @@
 const router = require("express").Router();
-const joi = require("joi");
 const client = require("../../config/database");
 
 router.post("/", async (req, res) => {
