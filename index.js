@@ -2,18 +2,15 @@ require('dotenv').config();
 const client = require('./config/database');
 const express = require('express');
 const cors = require('cors');
-const { createServer } = require("http");
-const { Server } = require("socket.io");
 const { rateLimit } = require('express-rate-limit');
 const authenticator = require('./middlewares/auth');
 const sizeof = require('object-sizeof');
 
+const { app, httpServer, io, getInActiveSocketIds } = require('./config/webSocket');
+
 const jwt = require("jsonwebtoken");
 
 const { black, bgGreen, bgRed } = require('ansis')
-
-const app = express();
-const httpServer = createServer(app);
 
 app.use(cors())
 
@@ -79,13 +76,14 @@ app.use("/deleteProfilePic", require('./routes/service/delProfilePic'));
 app.use("/getUser", require('./routes/service/getUser'));
 app.use("/findUser", require('./routes/service/findUser'));
 app.use("/addContact", require('./routes/service/addContact'));
+app.use("/getContactsDetail", require('./routes/service/getContactsDetail'));
 
-const io = new Server(httpServer, {
-    cors: {
-        origin: "*",
-        methods: ["POST"],
-    },
-});
+// const io = new Server(httpServer, {
+//     cors: {
+//         origin: "*",
+//         methods: ["POST"],
+//     },
+// });
 
 io.use(function (socket, next) {
     const token = socket.handshake.auth.token;
@@ -121,41 +119,28 @@ const removeSocketIds = async (user_id, socket_ids) => {
     await accounts_coll.updateOne({ user_id }, { $pull: { socket_ids: { $in: [...socket_ids] } } });
 }
 
-async function getInActiveSocketIds(user_socket_ids) {
-    if (!user_socket_ids.length) return [];
-
-    // getting list of all connected socket ids
-    const all_socket_ids = Array.from(await io.allSockets());
-    // removing active socket ids
-    user_socket_ids = user_socket_ids.filter((socket_id) => {
-        return !all_socket_ids.includes(socket_id);
-    })
-
-    return user_socket_ids;
-}
-
 io.on("connection", async (socket) => {
     // getting basic user info from database
     const basicUserInfo = await getBasicUserInfo(socket.user.user_id);
-    const active_user_sockets = basicUserInfo.socket_ids ? basicUserInfo.socket_ids : [];
+    const user_socket_ids = basicUserInfo.socket_ids ? basicUserInfo.socket_ids : [];
     
     console.log(black.bgGreen(basicUserInfo.username));
 
     // removing inactive socket ids
-    if (active_user_sockets.length) {
-        const filtered_socket_ids = await getInActiveSocketIds(active_user_sockets);
+    if (user_socket_ids.length) {
+        const filtered_socket_ids = await getInActiveSocketIds(user_socket_ids);
         if (filtered_socket_ids) {
             // locally managing active socket ids
-            active_user_sockets.filter((socket_id) => {
+            user_socket_ids.filter((socket_id) => {
                 return !filtered_socket_ids.includes(socket_id);
             })
             await removeSocketIds(socket.user.user_id, filtered_socket_ids);
         }
     }
 
-    // adding active socket ids to local list
-    active_user_sockets.push(socket.id);
-    // updating socket ids in database
+    // adding current socket id to local list
+    user_socket_ids.push(socket.id);
+    // adding socket id to the database
     await addSocketId(socket.user.user_id, socket.id);
 
 
@@ -163,11 +148,11 @@ io.on("connection", async (socket) => {
         console.log(black.bgRed(basicUserInfo.username));
 
         // locally managing active socket ids
-        active_user_sockets.splice(active_user_sockets.indexOf(socket.id), 1);
+        user_socket_ids.splice(user_socket_ids.indexOf(socket.id), 1);
         // updating socket ids in database
         await removeSocketIds(socket.user.user_id, [socket.id]);
         // updating last seen time, if no active connections
-        if (active_user_sockets.length === 0) {
+        if (user_socket_ids.length === 0) {
             accounts_coll.updateOne({ user_id: socket.user.user_id }, { $set: { last_seen: new Date() } });
         }
     });

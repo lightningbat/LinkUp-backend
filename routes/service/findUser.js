@@ -17,18 +17,26 @@ router.post("/", async (req, res) => {
         
         const accounts_coll = client.db("LinkUp").collection("accounts");
         
-        const searched_user = await accounts_coll.findOne({ username: username }, { projection: { _id: 0, user_id: 1, display_name: 1, profile_img: 1, bgColor: 1 } });
-        
-        if (searched_user.user_id === req.user.user_id) {
-            return res.status(400).send("Lol, you can't add yourself");
-        }
+        const searched_user = await accounts_coll.findOne({ username: username }, 
+            { projection: { _id: 0,
+                user_id: 1,
+                display_name: 1,
+                profile_img: 1,
+                bgColor: 1
+            }
+        });
 
         if (!searched_user) {
             return res.status(400).send("User does not exist");
         }
 
+        if (searched_user.user_id === req.user.user_id) {
+            return res.status(400).send("Lol, you can't add yourself");
+        }
+
         // checking if user is already in contacts
-        const current_user_contacts = await accounts_coll.findOne({ user_id: req.user.user_id }, { projection: { _id: 0, chat_contacts: 1 } });
+        const current_user_contacts = await accounts_coll.findOne({ user_id: req.user.user_id }, 
+            { projection: { _id: 0, chat_contacts: 1 } });
         
         if ("chat_contacts" in current_user_contacts) {
             if (searched_user.user_id in current_user_contacts.chat_contacts) {
