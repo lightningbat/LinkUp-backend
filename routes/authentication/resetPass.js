@@ -18,7 +18,7 @@ router.post("/", async (req, res) => {
         catch (err) { return res.status(400).json({ type: err.details[0].context.label, message: err.message }); }
 
         let userId;
-        // verifying token without throwing an error
+        // verifying token
         try {
             userId = jwt.verify(token, process.env.PASS_RESET_TOKEN_KEY).user_id;
         }
@@ -30,14 +30,14 @@ router.post("/", async (req, res) => {
         const accounts_coll = client.db("LinkUp").collection("accounts");
 
         // checking if account exist
-        const account_obj = await accounts_coll.findOne({ user_id: userId }, { projection: { _id: 0 } });
+        const account_obj = await accounts_coll.countDocuments({ user_id: userId });
         if (!account_obj) {
             return res.status(400).json({ type: "email", message: "Email Does Not Exist. Please Register" });
         }
 
         // replacing password with hashed password
-        account_obj.password = await bcrypt.hash(new_password, 10);
-        await accounts_coll.updateOne({ user_id: userId }, { $set: { password: account_obj.password } });
+        const new_hashed_password = await bcrypt.hash(new_password, 10);
+        await accounts_coll.updateOne({ user_id: userId }, { $set: { password: new_hashed_password } });
 
         res.status(200).send();
     }

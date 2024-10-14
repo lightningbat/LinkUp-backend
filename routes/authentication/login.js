@@ -20,9 +20,6 @@ router.post("/", async (req, res) => {
         const allDataExists = ifAllDataExists(req.body);
         if (allDataExists !== true) return res.status(400).json(allDataExists);
 
-        // database collections
-        const accounts_coll = client.db("LinkUp").collection("accounts");
-
         // adding a temporary display_name as input-validator throws an error for blank field
         req.body.display_name = "abcdefgh"
 
@@ -33,24 +30,34 @@ router.post("/", async (req, res) => {
         }
         catch (err) { return res.status(400).json({ type: err.details[0].context.label, message: err.message }); }
 
-        // finding the email that matches with the sanitized email
-        const user = await accounts_coll.findOne({ email: account_info.email }, { projection: { _id: 0 } });
+        // database collections
+        const accounts_coll = client.db("LinkUp").collection("accounts");
+        const unverified_accounts_coll = client.db("LinkUp").collection("unverified accounts");
 
-        if (!user) return res.status(400).json({ type: "email", message: "Email Not Found" });
+        // getting user from database
+        const from_verified = accounts_coll.findOne({ email: account_info.email }, { projection: { _id: 0, user_id: 1, password: 1 } });
+        const from_unverified = unverified_accounts_coll.findOne({ email: account_info.email }, { projection: { _id: 0, password: 1 } });
+
+        const user = await Promise.all([from_verified, from_unverified]);
+        // email not found in both collections
+        if (!user[0] && !user[1]) return res.status(400).json({ type: "email", message: "Email Not Found" });
+
+        const isVerified = user[0] ? true : false;
+        const password_from_database = isVerified ? user[0].password : user[1].password;
 
         // matching password with hashed password from database
-        const isMatch = await bcrypt.compare(account_info.password, user.password);
+        const isMatch = await bcrypt.compare(account_info.password, password_from_database);
 
         if (!isMatch) return res.status(400).json({ type: "password", message: "Incorrect Password" });
 
-        if (!user.verified) {
+        if (!isVerified) {
             const otp = generateOTP(type = "registration", email = account_info.email);
             OTP_Mailer(email = account_info.email, otp);
             return res.status(200).send({ verified: false })
         }
 
         const token = jwt.sign(
-            { user_id: user.user_id },
+            { user_id: user[0].user_id },
             process.env.TOKEN_KEY
         );
 

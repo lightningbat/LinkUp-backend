@@ -1,6 +1,7 @@
 const email_schema = require("../../schemas/email_schema");
 const client = require('../../config/database');
 const router = require("express").Router();
+const generateOTP = require("../../utils/opt_generator");
 
 const OTP_Mailer = require("../../utils/otp_mailer");
 
@@ -17,20 +18,19 @@ router.post("/", async (req, res) => {
         // database collection
         const otp_coll = client.db("LinkUp").collection("otp");
 
+        /* Defensive Code */
         // checking if email already exist
-        const otp_obj = await otp_coll.findOne({ email: email }, { projection: { _id: 0 } });
-        if (!otp_obj) {
+        const old_otp = await otp_coll.findOne({ email: email }, { projection: { _id: 0, otp_code: 1 }});
+        if (!old_otp) {
             return res.status(400).json({ type: "email", message: "Email Does Not Exist. Please Register" });
         }
 
-        // updating time of old otp to current time
-        const current_time = new Date();
-        const new_date_created = current_time.toUTCString();
-        const new_expires = new Date(current_time.setMinutes(new Date().getMinutes() + 3)).toUTCString();
-        await otp_coll.updateOne({ email: email }, { $set: { date_created: new_date_created, expires: new_expires } });
+        // generating new otp
+        const new_otp_type = old_otp.otp_code < 5000 ? "registration" : "password_reset";
+        const new_otp = generateOTP(type = new_otp_type, email);
 
-        // sending otp to the user
-        OTP_Mailer(otp_obj.email, otp_obj.otp_code);
+        // emailing otp to the user
+        OTP_Mailer(email, new_otp);
 
         res.status(200).send();
     }

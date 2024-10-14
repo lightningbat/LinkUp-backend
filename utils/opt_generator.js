@@ -34,8 +34,8 @@ async function saveOTP(otp, email) {
     }
 
     // check if email already exists
-    const user = await otp_coll.findOne({ email: email });
-    if (user) {
+    const user = await otp_coll.countDocuments({ email: email });
+    if (user > 0) {
         // updating pre existing data
         await otp_coll.updateOne({ email: email }, { $set: otp_obj });
     } else {

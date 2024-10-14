@@ -34,6 +34,7 @@ router.post("/", async (req, res) => {
             }
         }
 
+        // getting contact's user data
         const user_to_add = await accounts_coll.findOne({ user_id: contact_user_id }, 
             { projection: { _id: 0,
                 last_seen: 1,
@@ -46,11 +47,12 @@ router.post("/", async (req, res) => {
             return res.status(400).send("User does not exist");
         }
 
+        // adding contact to the current user's contacts list
         const current_time = new Date();
         const result = await accounts_coll.updateOne({ user_id }, 
             {$set: {[`chat_contacts.${contact_user_id}`]: { chat_id : null, blocked: false, time: current_time }}});
 
-        // holds last seen and online
+        // holds last seen and online status of the contact
         const user_status = await getLastSeenAndOnline(contact_user_id, user_to_add.settings, user_to_add.socket_ids, user_to_add.last_seen);
         const res_to_send = {
             time: current_time,
@@ -81,7 +83,7 @@ async function getLastSeenAndOnline(user_id, settings, socket_ids = [], last_see
         socket_ids = socket_ids.filter((socket_id) => !inActiveSocketIds.includes(socket_id));
     }
 
-    // setting last seen and online according to settings
+    // setting last seen and online according to user's settings
     // if user has disabled last seen and online
     if (!settings.last_seen_and_online ) {
         result.online = false;

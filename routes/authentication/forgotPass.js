@@ -16,12 +16,17 @@ router.post("/", async (req, res) => {
         try { await email_schema.validateAsync(req.body); }
         catch (err) { return res.status(400).json({ type: err.details[0].context.label, message: err.message }); }
 
-        // database collection
+        // database collections
         const accounts_coll = client.db("LinkUp").collection("accounts");
+        const unverified_accounts_coll = client.db("LinkUp").collection("unverified accounts");
 
         // checking if email already exist
-        const account_obj = await accounts_coll.findOne({ email: email }, { projection: { _id: 0 } });
-        if (!account_obj) {
+        const from_verified = accounts_coll.countDocuments({ email: email });
+        const from_unverified = unverified_accounts_coll.countDocuments({ email: email });
+
+        const from_all = await Promise.all([from_verified, from_unverified]);
+        
+        if (!from_all[0] && !from_all[1]) {
             return res.status(400).json({ type: "email", message: "Email Does Not Exist. Please Register" });
         }
 

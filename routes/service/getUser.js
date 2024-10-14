@@ -13,16 +13,12 @@ router.post("/", async (req, res) => {
             profile_img: 1,
             email: 1,
             bgColor: 1,
-            verified: 1,
             settings: 1,
             chat_contacts: 1
             } 
         });
         if (!result) {
             return res.status(400).send("Failed to get user");
-        }
-        if (!result.verified) {
-            return res.status(400).send("Account is not verified");
         }
         return res.status(200).json(result);
     }

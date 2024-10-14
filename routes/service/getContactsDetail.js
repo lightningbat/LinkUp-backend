@@ -19,20 +19,24 @@ router.post("/", async (req, res) => {
         }
 
         const { user_id } = req.user;
+        /* Defensive code */
         // removing current user from contacts list (if present)
         if (Object.keys(contactsList).includes(user_id)) {
             delete contactsList[user_id];
         }
 
-        // all contact ids in contactsList
+        // holds
+        // all contact ids from contactsList
         let contact_ids;
-        // all chat ids in contactsList
+        // all chat ids from contactsList
         const chat_ids = []
 
         // validating requested payload
         try {
+            // getting all contact ids from contactsList
             contact_ids = Object.keys(contactsList);
 
+            // getting all chat ids from contactsList
             for (let i = 0; i < contact_ids.length; i++) {
                 const chat_id = contactsList[contact_ids[i]]?.chat_id;
                 if (chat_id) {
@@ -49,6 +53,8 @@ router.post("/", async (req, res) => {
         }
 
         const accounts_coll = client.db("LinkUp").collection("accounts");
+
+        // getting all contact's info in a single query
         let all_contacts_info = await accounts_coll.find(
             { user_id: { $in: contact_ids } }, 
             { projection: { _id: 0,
@@ -67,6 +73,7 @@ router.post("/", async (req, res) => {
             return res.status(400).send("Failed to get contacts");
         }
 
+        /*
         let all_chats_info;
         if (chat_ids.length) 
         {
@@ -85,13 +92,14 @@ router.post("/", async (req, res) => {
                 } 
             }).toArray();
         }
+        */
 
         // putting all contact's socket ids to an array
         const all_socket_ids = (all_contacts_info.map((contact) => contact.socket_ids)).flat();
         // getting list of socket ids that are no longer active
         const inActiveSocketIds = await getInActiveSocketIds(all_socket_ids);
 
-        const polished_contacts_info = all_contacts_info.map((contact) => {
+        const polished_contacts_list = all_contacts_info.map((contact) => {
             // removing inactive socket ids from contact's socket_ids
             if ("socket_ids" in contact && inActiveSocketIds.length) {
                 // creating an array of inactive socket ids of the current contact
@@ -145,7 +153,7 @@ router.post("/", async (req, res) => {
             return contact;
         })
 
-        res.status(200).send(polished_contacts_info);
+        res.status(200).send(polished_contacts_list);
     }
     catch (err) {
         console.log(err);

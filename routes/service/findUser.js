@@ -30,6 +30,7 @@ router.post("/", async (req, res) => {
             return res.status(400).send("User does not exist");
         }
 
+        /* Defensive code */
         if (searched_user.user_id === req.user.user_id) {
             return res.status(400).send("Lol, you can't add yourself");
         }
