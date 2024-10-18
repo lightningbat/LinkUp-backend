@@ -3,14 +3,13 @@ const client = require('./config/database');
 const express = require('express');
 const cors = require('cors');
 const { rateLimit } = require('express-rate-limit');
-const authenticator = require('./middlewares/auth');
+const authenticator = require('./middlewares/express/auth');
 const sizeof = require('object-sizeof');
 
-const { app, httpServer, io, getInActiveSocketIds } = require('./config/webSocket');
+const { app, httpServer } = require('./config/webSocket');
 
-const jwt = require("jsonwebtoken");
-
-const { black, bgGreen, bgRed } = require('ansis')
+/* ***** SOCKET IO ***** */
+require('./socket_io/events');
 
 app.use(cors())
 
@@ -21,14 +20,6 @@ client.connect()
     .catch(err => {
         console.error(err);
     });
-
-// (async () => {
-//     //  making variables global
-//     try {
-//         app.set("accounts_coll", await client.db("LinkUp").collection("accounts"));
-//     }
-//     catch (err) { console.error(err); }
-// })();
 
 
 const min = 1
@@ -77,86 +68,6 @@ app.use("/getUser", require('./routes/service/getUser'));
 app.use("/findUser", require('./routes/service/findUser'));
 app.use("/addContact", require('./routes/service/addContact'));
 app.use("/getContactsDetail", require('./routes/service/getContactsDetail'));
-
-// const io = new Server(httpServer, {
-//     cors: {
-//         origin: "*",
-//         methods: ["POST"],
-//     },
-// });
-
-io.use(function (socket, next) {
-    const token = socket.handshake.auth.token;
-    if (token) {
-        jwt.verify(token, process.env.TOKEN_KEY, function (err, decoded) {
-            if (err) {
-                return next(new Error("Invalid token"));
-            }
-            socket.user = decoded;
-            next();
-        });
-    } else {
-        next(new Error("Token not found"));
-    }
-})
-
-const accounts_coll = client.db("LinkUp").collection("accounts");
-
-async function getBasicUserInfo(user_id) {
-    const result = await accounts_coll.findOne({ user_id }, {
-        projection: {
-            _id: 0, display_name: 1, username: 1, email: 1, socket_ids: 1
-        }
-    });
-    return result;
-}
-
-const addSocketId = async (user_id, socket_id) => {
-    await accounts_coll.updateOne({ user_id }, { $push: { socket_ids: socket_id } });
-}
-
-const removeSocketIds = async (user_id, socket_ids) => {
-    await accounts_coll.updateOne({ user_id }, { $pull: { socket_ids: { $in: [...socket_ids] } } });
-}
-
-io.on("connection", async (socket) => {
-    // getting basic user info from database
-    const basicUserInfo = await getBasicUserInfo(socket.user.user_id);
-    const user_socket_ids = basicUserInfo.socket_ids ? basicUserInfo.socket_ids : [];
-    
-    console.log(black.bgGreen(basicUserInfo.username));
-
-    // removing inactive socket ids
-    if (user_socket_ids.length) {
-        const filtered_socket_ids = await getInActiveSocketIds(user_socket_ids);
-        if (filtered_socket_ids) {
-            // locally managing active socket ids
-            user_socket_ids.filter((socket_id) => {
-                return !filtered_socket_ids.includes(socket_id);
-            })
-            await removeSocketIds(socket.user.user_id, filtered_socket_ids);
-        }
-    }
-
-    // adding current socket id to local list
-    user_socket_ids.push(socket.id);
-    // adding socket id to the database
-    await addSocketId(socket.user.user_id, socket.id);
-
-
-    socket.on("disconnect", async (reason) => {
-        console.log(black.bgRed(basicUserInfo.username));
-
-        // locally managing active socket ids
-        user_socket_ids.splice(user_socket_ids.indexOf(socket.id), 1);
-        // updating socket ids in database
-        await removeSocketIds(socket.user.user_id, [socket.id]);
-        // updating last seen time, if no active connections
-        if (user_socket_ids.length === 0) {
-            accounts_coll.updateOne({ user_id: socket.user.user_id }, { $set: { last_seen: new Date() } });
-        }
-    });
-});
 
 
 const port = process.env.PORT || 3000;
