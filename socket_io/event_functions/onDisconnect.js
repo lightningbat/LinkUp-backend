@@ -14,5 +14,7 @@ module.exports = async (socket, reason) => {
     if (socket.user.socket_ids.length === 0) {
         // updating last seen in the database
         updateLastSeen(socket.user.user_id);
+
+        socket.broadcast.in(socket.user.user_id).emit("user_disconnected", socket.user.user_id);
     }
 }
