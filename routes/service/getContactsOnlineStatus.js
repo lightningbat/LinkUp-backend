@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const client = require("../../config/database");
 const joi = require("joi");
+const { getInActiveSocketIds } = require("../../config/webSocket");
 
 router.post("/", async (req, res) => {
     try {
@@ -33,10 +34,33 @@ router.post("/", async (req, res) => {
             return res.status(400).send("Failed to get online status");
         }
 
+        // putting all contact's socket ids to an array
+        const all_socket_ids = (response.map((contact) => contact?.socket_ids)).flat();
+        // getting list of socket ids that are no longer active
+        const inActiveSocketIds = await getInActiveSocketIds(all_socket_ids);
+
         // constructing response
         const contacts_online_status = {}; // { "uuid of the contact": { online: boolean, last_seen: Date }, ... }
         for (const contact of response) {
             const contact_data = { online: false, last_seen: null };
+
+            // inactive socket ids of the current contact
+            const inactive_socket_ids = []
+
+            // removing inactive socket ids from fetched data
+            contact.socket_ids = contact.socket_ids.filter((socket_id) => {
+                if (inActiveSocketIds.includes(socket_id)) {
+                    inactive_socket_ids.push(socket_id);
+                    return false;
+                }
+                return true;
+            })
+
+            // removing inactive socket ids from the database
+            if (inactive_socket_ids.length) {
+                accounts_coll.updateOne({ user_id: contact.user_id }, 
+                    { $pull: { socket_ids: { $in: [...inactive_socket_ids] } } });
+            }
 
             if (contact.settings.last_seen_and_online) { // if user has enabled last seen and online
 
