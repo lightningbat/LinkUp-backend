@@ -30,7 +30,7 @@ io.on("connection", async (socket) => {
     console.log(black.bgGreen(userInfo.username));
 
     // joining own socket room (for syncing)
-    // socket.join(socket.user.user_id);
+    socket.join(userInfo.socket_room_id);
     // joining user's contacts socket rooms
     if (user_contacts.length) {
         user_contacts.forEach((contact_id) => {

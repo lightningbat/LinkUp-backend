@@ -28,12 +28,14 @@ async function populateAccountsCollection({ display_name, email, password, joine
             return { type: "email", status: 400, message: "Account already verified" };
         }
 
-        const random_id = uuidv4();
+        const user_id = uuidv4();
+        const socket_room_id = uuidv4(); // for web socket (to synchronize user's all sockets)
         const random_bgColor = bgColor_list[Math.floor(Math.random() * bgColor_list.length)];
         const username = await username_generator(display_name);
 
         const data_to_insert = {
-            user_id: random_id,
+            user_id: user_id,
+            socket_room_id: socket_room_id,
             display_name: display_name,
             username: username,
             email: email,

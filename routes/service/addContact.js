@@ -28,7 +28,7 @@ router.post("/", async (req, res) => {
 
         // checking if user is already in contacts
         const current_user_info = await accounts_coll.findOne({ user_id }, 
-            { projection: { _id: 0, chat_contacts: 1, socket_ids: 1 } });
+            { projection: { _id: 0, chat_contacts: 1, socket_ids: 1, socket_room_id: 1 } });
 
         if ("chat_contacts" in current_user_info) {
             if (contact_user_id in current_user_info.chat_contacts) {
@@ -89,10 +89,7 @@ router.post("/", async (req, res) => {
                 res_to_send.bgColor = user_to_add.bgColor;
                 res_to_send.user_id = contact_user_id;
 
-                // informing all other user's sockets
-                current_user_info.socket_ids.forEach((socket_id) => {
-                    io.to(socket_id).emit("newContact", res_to_send);
-                });
+                io.to(current_user_info.socket_room_id).emit("newContact", res_to_send);
             }
         }
         else {

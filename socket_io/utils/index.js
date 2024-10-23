@@ -11,7 +11,7 @@ const accounts_coll = client.db("LinkUp").collection("accounts");
 async function getUserInfo(user_id) {
     const result = await accounts_coll.findOne({ user_id }, {
         projection: {
-            _id: 0, username: 1, socket_ids: 1, chat_contacts: 1
+            _id: 0, username: 1, socket_ids: 1, socket_room_id: 1, chat_contacts: 1
         }
     });
     return result;
