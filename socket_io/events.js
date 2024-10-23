@@ -45,13 +45,12 @@ io.on("connection", async (socket) => {
     /* ********* EVENT: DISCONNECT ********* */
     socket.on("disconnect", async (reason) => onDisconnect(socket, reason));
 
-    /* ********* EVENT: ADD NEW CONTACT ********* */
+    /* ********* EVENT: JOIN NEW CONTACT ROOM ********* */
     // front-end informing about adding a new contact
-    // 1. to join the newly added contact's room
-    // 2. to sync changes with other connected sockets 
-    socket.on("added_new_contact", (contact_id) => {
-        socket.join(contact_id)
-        /* ***** syncing changes with other connected sockets ***** */
+    // => to join the newly added contact's room, to get real time updates of the contact
+    // e.g. real time online status, change of display name and profile image, etc
+    socket.on("join_new_contact_room", (contact_id) => {
+        socket.join(contact_id);
     });
 
 })

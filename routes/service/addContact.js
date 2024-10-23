@@ -3,6 +3,8 @@ const client = require("../../config/database");
 const joi = require("joi");
 const { getInActiveSocketIds } = require("../../config/webSocket");
 
+const { io } = require("../../config/webSocket")
+
 router.post("/", async (req, res) => {
     try {
         const { contact_user_id } = req.body;
@@ -25,23 +27,38 @@ router.post("/", async (req, res) => {
         const accounts_coll = client.db("LinkUp").collection("accounts");
 
         // checking if user is already in contacts
-        const current_user_contacts = await accounts_coll.findOne({ user_id }, 
-            { projection: { _id: 0, chat_contacts: 1 } });
+        const current_user_info = await accounts_coll.findOne({ user_id }, 
+            { projection: { _id: 0, chat_contacts: 1, socket_ids: 1 } });
 
-        if ("chat_contacts" in current_user_contacts) {
-            if (contact_user_id in current_user_contacts.chat_contacts) {
+        if ("chat_contacts" in current_user_info) {
+            if (contact_user_id in current_user_info.chat_contacts) {
                 return res.status(400).send("Already in contacts");
             }
         }
 
+        // checking if user has multiple sockets connected
+        let multiple_sockets = current_user_info.socket_ids.length > 1;
+
+        // fields to get from database
+        const projection = { _id: 0,
+            last_seen: 1,
+            socket_ids: 1,
+            settings: { last_seen_and_online: 1 },
+        }
+
+        // if user has multiple sockets
+        // getting more details to send to all other user's sockets
+        if (multiple_sockets) {
+            projection.display_name = 1;
+            projection.profile_img = 1;
+            projection.bgColor = 1;
+        }
+
         // getting contact's user data
         const user_to_add = await accounts_coll.findOne({ user_id: contact_user_id }, 
-            { projection: { _id: 0,
-                last_seen: 1,
-                socket_ids: 1,
-                settings: { last_seen_and_online: 1 }
-            } });
+            { projection: projection });
 
+        // Defensive code
         // checking if user exists
         if (!user_to_add) {
             return res.status(400).send("User does not exist");
@@ -50,19 +67,37 @@ router.post("/", async (req, res) => {
         // adding contact to the current user's contacts list
         const current_time = new Date();
         const result = await accounts_coll.updateOne({ user_id }, 
-            {$set: {[`chat_contacts.${contact_user_id}`]: { chat_id : null, blocked: false, time: current_time }}});
+            {$set: {[`chat_contacts.${contact_user_id}`]: { chat_id : null, blocked: false, timestamp: current_time }}});
 
         // holds last seen and online status of the contact
         const user_status = await getLastSeenAndOnline(contact_user_id, user_to_add.settings, user_to_add.socket_ids, user_to_add.last_seen);
         const res_to_send = {
-            time: current_time,
+            timestamp: current_time,
             ...user_status
         }
 
         if (result.modifiedCount === 1) {
-            return res.status(200).json({ ...res_to_send });
+            res.status(200).json({ ...res_to_send });
+
+            // informing other user's sockets that a new contact has been added
+            // if user has multiple sockets connected
+            if (multiple_sockets) {
+                // adding more details to send to all other user's sockets
+                // since the socket which added the contact has already received the details
+                res_to_send.display_name = user_to_add.display_name;
+                res_to_send.profile_img = user_to_add.profile_img;
+                res_to_send.bgColor = user_to_add.bgColor;
+                res_to_send.user_id = contact_user_id;
+
+                // informing all other user's sockets
+                current_user_info.socket_ids.forEach((socket_id) => {
+                    io.to(socket_id).emit("newContact", res_to_send);
+                });
+            }
         }
-        res.status(400).send("Failed to add contact");
+        else {
+            return res.status(400).send("Failed to add contact");
+        }
     }
     catch (err) {
         console.log(err);
