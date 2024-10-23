@@ -49,7 +49,8 @@ async function populateAccountsCollection({ display_name, email, password, joine
 
         const result = await accounts_coll.insertOne(data_to_insert);
         if (result.acknowledged) {
-            return { type: "success", status: 200, user_id: random_id };
+            return { type: "success", status: 200, user_id: user_id };
+            // also returning user_id to sign jwt
         }
         return { type: "server", status: 400, message: "Failed to insert data" };
     }

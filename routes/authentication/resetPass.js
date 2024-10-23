@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 
 router.post("/", async (req, res) => {
     try {
-        // req.body = {token, password}
+        // req.body = {token, new_password}
         const { token, new_password } = req.body;
         if (!token) return res.status(400).json({ type: "token", message: "Please provide a token" });
         if (!new_password) return res.status(400).json({ type: "password", message: "Please provide new password" });
@@ -20,7 +20,9 @@ router.post("/", async (req, res) => {
         let userId;
         // verifying token
         try {
-            userId = jwt.verify(token, process.env.PASS_RESET_TOKEN_KEY).user_id;
+            const { user_id } = jwt.verify(token, process.env.PASS_RESET_TOKEN_KEY);
+            userId = user_id;
+
         }
         catch (err) {
             return res.status(400).json({ type: "token", message: "Invalid Token. Please Request New Token" });
@@ -30,8 +32,8 @@ router.post("/", async (req, res) => {
         const accounts_coll = client.db("LinkUp").collection("accounts");
 
         // checking if account exist
-        const account_obj = await accounts_coll.countDocuments({ user_id: userId });
-        if (!account_obj) {
+        const if_account = await accounts_coll.countDocuments({ user_id: userId });
+        if (!if_account) {
             return res.status(400).json({ type: "email", message: "Email Does Not Exist. Please Register" });
         }
 

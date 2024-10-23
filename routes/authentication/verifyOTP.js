@@ -4,6 +4,7 @@ const router = require("express").Router();
 const jwt = require("jsonwebtoken");
 
 const accountsCollectionPopulator = require("../../utils/accountsCollectionPopulator");
+const { status } = require("express/lib/response");
 
 router.post("/", async (req, res) => {
     try {
@@ -37,27 +38,28 @@ router.post("/", async (req, res) => {
             return res.status(400).json(otp_verification);
         }
 
+        const from_unverified_coll = unverified_accounts_coll.findOne({ email: email }, { projection: { _id: 0 } });
+        const from_verified_coll = accounts_coll.findOne({ email: email }, { projection: { _id: 0, user_id: 1 } });
+        const [account_info_from_unverified, account_info_from_verified] = await Promise.all([from_unverified_coll, from_verified_coll]);
+        const account_info = account_info_from_unverified || account_info_from_verified;
+        const is_account_verified = account_info_from_unverified ? false : true;
+
+        if (!account_info) return res.status(400).json({ type: "email", message: "Account Does Not Exist. Please Register" });
+
         // otp ranging between 1000 and 4999 are for account registration
-        if (otp_obj.otp_code < 5000) 
-        {
-            // getting account data from unverified accounts collection
-            const account_info = await unverified_accounts_coll.findOne({ email: email }, { projection: { _id: 0 } });
-            if (!account_info) {
-                return res.status(400).json({ type: "email", message: "Account Does Not Exist. Please Register" });
-            }
-            // adding account data to verified accounts collection
-            const add_to_verified_accounts = await accountsCollectionPopulator(account_info);
-            // some error occurred while adding account data to verified accounts
-            if (add_to_verified_accounts.status !== 200) {
-                return res.status(add_to_verified_accounts.status).json(
-                    { type:add_to_verified_accounts.type, message: add_to_verified_accounts.message }
-                );
+        if (otp_obj.otp_code < 5000) {
+
+            if (is_account_verified) {
+                return res.status(400).json({ type: "email", message: "Account Already Verified. Please Login" });
             }
 
-            // deleting account data from unverified accounts collection
-            unverified_accounts_coll.deleteOne({ email: email });
+            const verify_account = await verifyAccount(account_info);
 
-            const user_id = add_to_verified_accounts.user_id;
+            if (verify_account.status !== 200) {
+                return res.status(400).json({ type: verify_account.type, message: verify_account.message });
+            }
+
+            const user_id = verify_account.user_id;
             const token = jwt.sign(
                 { user_id: user_id },
                 process.env.TOKEN_KEY
@@ -67,14 +69,21 @@ router.post("/", async (req, res) => {
         // otp ranging between 5000 and 9999 are for password reset
         else if (otp_obj.otp_code >= 5000 && otp_obj.otp_code < 10000) {
 
-            /* Defensive code */
-            // checking if account exists
-            const account_info = await accounts_coll.findOne({ email: email }, { projection: { _id: 0, user_id: 1 } });
-            if (!account_info) {
-                return res.status(400).json({ type: "email", message: "Account Does Not Exist. Please Register" });
+            let user_id = account_info.user_id;
+
+            if (!is_account_verified) {
+                const verify_account = await verifyAccount(account_info);
+
+                user_id = verify_account.user_id;
+
+                if (verify_account.status !== 200) {
+                    return res.status(400).json({ type: verify_account.type, message: verify_account.message });
+                }
             }
+
+            // generating password reset token
             const token = jwt.sign(
-                { user_id: account_info.user_id },
+                { user_id: user_id },
                 process.env.PASS_RESET_TOKEN_KEY,
                 { expiresIn: "10m" }
             );
@@ -89,17 +98,26 @@ router.post("/", async (req, res) => {
 
 
 function verifyOTP(otp_obj, otp) {
+    // checking if otp matches
+    if (otp_obj.otp_code != otp) {
+        return { type: "otp", message: "Incorrect OTP. Please Enter Correct OTP" };
+    }
     // checking if otp is expired
     if (new Date() > new Date(otp_obj.expires)) {
         return { type: "otp", message: "OTP Expired. Please Request New OTP" };
     }
 
-    // checking if otp matches
-    if (otp_obj.otp_code != otp) {
-        return { type: "otp", message: "Incorrect OTP. Please Enter Correct OTP" };
-    }
-
     return { type: "success", message: "OTP Verified" };
+}
+
+async function verifyAccount(account_info) {
+    // adding account data to verified accounts collection
+    const verify_account = await accountsCollectionPopulator(account_info);
+
+    // deleting account data from unverified accounts collection
+    client.db("LinkUp").collection("unverified accounts").deleteOne({ email: account_info.email });
+
+    return verify_account;
 }
 
 module.exports = router
