@@ -76,6 +76,7 @@ app.use("/addContact", require('./routes/service/addContact'));
 app.use("/getContactsDetail", require('./routes/service/getContactsDetail'));
 // called when user was temporarily disconnected from socket
 app.use("/getContactsOnlineStatus", require('./routes/service/getContactsOnlineStatus'));
+app.use("/updateProfile", require('./routes/service/updateProfile'));
 
 
 const port = process.env.PORT || 3000;

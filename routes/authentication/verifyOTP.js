@@ -61,7 +61,7 @@ router.post("/", async (req, res) => {
 
             const user_id = verify_account.user_id;
             const token = jwt.sign(
-                { user_id: user_id },
+                { user_id: user_id, socket_room_id: verify_account.socket_room_id },
                 process.env.TOKEN_KEY
             );
             return res.status(200).send({ token });
@@ -110,6 +110,12 @@ function verifyOTP(otp_obj, otp) {
     return { type: "success", message: "OTP Verified" };
 }
 
+/**
+ * 
+ * @description transfer account data from unverified accounts collection to verified accounts collection
+ * @param {obj} account_info - account data from unverified accounts collection
+ * @returns {Promise<{type: string, status: number, message: string, user_id: string, socket_room_id: string}>}
+ */
 async function verifyAccount(account_info) {
     // adding account data to verified accounts collection
     const verify_account = await accountsCollectionPopulator(account_info);

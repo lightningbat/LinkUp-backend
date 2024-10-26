@@ -40,7 +40,7 @@ const removeSocketIds = async (user_id, socket_ids) => {
  * @param {string} user_id - uuid of the user
  * @param {string[]} old_socket_ids - list of old socket ids
  * @param {string} current_socket_id - current socket id
- * @returns {Promise<string[]>} - list of active socket ids
+ * @returns {Promise<string[]>} - list of active socket ids (including the current socket id)
  */
 const manageActiveSocketIds = async (user_id, old_socket_ids, current_socket_id) => {
     // removing inactive socket ids
@@ -58,7 +58,7 @@ const manageActiveSocketIds = async (user_id, old_socket_ids, current_socket_id)
     // adding current socket id to the database
     await addSocketId(user_id, current_socket_id);
 
-    return old_socket_ids;
+    return [...old_socket_ids, current_socket_id];
 }
 
 /**

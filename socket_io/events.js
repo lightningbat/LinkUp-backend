@@ -1,6 +1,6 @@
 const { io } = require("../config/webSocket")
 const verifyToken = require("../middlewares/socketio/auth");
-const { black, bgGreen, bgRed } = require('ansis')
+const { black, bgGreen, bgRed, bgBlue } = require('ansis')
 const { getUserInfo, manageActiveSocketIds } = require("./utils");
 
 const { onDisconnect } = require("./event_functions");
@@ -9,7 +9,7 @@ io.use(verifyToken);
 
 io.on("connection", async (socket) => {
     // getting user info from database
-    const userInfo = await getUserInfo(socket.user.user_id);
+    const userInfo = await getUserInfo(socket.user.user_id)
 
     // getting user info from returned data from database
     const user_socket_ids = userInfo?.socket_ids || [];
@@ -24,10 +24,12 @@ io.on("connection", async (socket) => {
     // removing inactive socket ids
     const active_socket_ids = await manageActiveSocketIds(socket.user.user_id, user_socket_ids, socket.id);
 
-    // storing active socket ids in socket
-    socket.user.socket_ids = [...active_socket_ids, socket.id];
-
-    console.log(black.bgGreen(userInfo.username));
+    if ( active_socket_ids.length == 1 ) { // if user is connected to only one socket
+        console.log(black.bgGreen(userInfo.username));
+    }
+    else { // if user is already connected to any socket
+        console.log(black.bgBlue(userInfo.username));
+    }
 
     // joining own socket room (for syncing)
     socket.join(userInfo.socket_room_id);
@@ -40,7 +42,7 @@ io.on("connection", async (socket) => {
 
     // broadcast the current user online status
     // if user is connected to only one socket (i.e. the current socket)
-    if (socket.user.socket_ids.length == 1) socket.broadcast.in(socket.user.user_id).emit("user_connected", socket.user.user_id);
+    if (active_socket_ids.length == 1) socket.broadcast.in(socket.user.user_id).emit("user_connected", socket.user.user_id);
 
     /* ********* EVENT: DISCONNECT ********* */
     socket.on("disconnect", async (reason) => onDisconnect(socket, reason));
@@ -52,5 +54,4 @@ io.on("connection", async (socket) => {
     socket.on("join_new_contact_room", (contact_id) => {
         socket.join(contact_id);
     });
-
 })

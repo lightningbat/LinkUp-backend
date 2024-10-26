@@ -6,8 +6,7 @@ router.post("/", async (req, res) => {
         const userId = req.user.user_id;
         const accounts_coll = client.db("LinkUp").collection("accounts");
         const result = await accounts_coll.findOne({ user_id: userId }, 
-            { projection: { 
-            _id: 0,
+            { projection: { _id: 0,
             display_name: 1,
             username: 1,
             profile_img: 1,
@@ -20,7 +19,7 @@ router.post("/", async (req, res) => {
         if (!result) {
             return res.status(400).send("Failed to get user");
         }
-        return res.status(200).json(result);
+        return res.status(200).json({user_id: userId, ...result});
     }
     catch (err) {
         console.log(err);

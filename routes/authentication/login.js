@@ -35,7 +35,7 @@ router.post("/", async (req, res) => {
         const unverified_accounts_coll = client.db("LinkUp").collection("unverified accounts");
 
         // getting user from database
-        const from_verified = accounts_coll.findOne({ email: account_info.email }, { projection: { _id: 0, user_id: 1, password: 1 } });
+        const from_verified = accounts_coll.findOne({ email: account_info.email }, { projection: { _id: 0, user_id: 1, socket_room_id: 1, password: 1 } });
         const from_unverified = unverified_accounts_coll.findOne({ email: account_info.email }, { projection: { _id: 0, password: 1 } });
 
         const user = await Promise.all([from_verified, from_unverified]);
@@ -57,7 +57,7 @@ router.post("/", async (req, res) => {
         }
 
         const token = jwt.sign(
-            { user_id: user[0].user_id },
+            { user_id: user[0].user_id, socket_room_id: user[0].socket_room_id },
             process.env.TOKEN_KEY
         );
 

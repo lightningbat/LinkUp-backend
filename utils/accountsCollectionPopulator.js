@@ -12,7 +12,7 @@ const username_generator = require('./user_name')
  * @param {string} options.email - email of the account
  * @param {string} options.password - password of the account
  * @param {Date} options.joined_timestamp - joined timestamp of the account
- * @returns {Promise<{type: string, status: number, message: string, user_id: string}}>}
+ * @returns {Promise<{type: string, status: number, message: string, user_id: string, socket_room_id: string}}>}
  */
 async function populateAccountsCollection({ display_name, email, password, joined_timestamp } = {}) {
     try {
@@ -49,7 +49,7 @@ async function populateAccountsCollection({ display_name, email, password, joine
 
         const result = await accounts_coll.insertOne(data_to_insert);
         if (result.acknowledged) {
-            return { type: "success", status: 200, user_id: user_id };
+            return { type: "success", status: 200, user_id: user_id, socket_room_id: socket_room_id };
             // also returning user_id to sign jwt
         }
         return { type: "server", status: 400, message: "Failed to insert data" };
