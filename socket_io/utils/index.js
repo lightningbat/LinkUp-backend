@@ -6,12 +6,12 @@ const accounts_coll = client.db("LinkUp").collection("accounts");
 /**
  * 
  * @param {string} user_id - uuid of the user
- * @returns {Promise<{username: string, socket_ids: string[], chat_contacts: object}}>}
+ * @returns {Promise<{username: string, socket_room_id: string, socket_ids: string[], chat_contacts: object, settings: {last_seen_and_online: Date}}}>}
  */
 async function getUserInfo(user_id) {
     const result = await accounts_coll.findOne({ user_id }, {
         projection: {
-            _id: 0, username: 1, socket_ids: 1, socket_room_id: 1, chat_contacts: 1
+            _id: 0, username: 1, socket_ids: 1, socket_room_id: 1, chat_contacts: 1, settings: { last_seen_and_online: 1 }
         }
     });
     return result;
@@ -64,9 +64,13 @@ const manageActiveSocketIds = async (user_id, old_socket_ids, current_socket_id)
 /**
  * @description - updates last seen in the database
  * @param {string} user_id - uuid of the user
+ * @returns {Promise<Date>} - last seen date
  */
 const updateLastSeen = async (user_id) => {
-    await accounts_coll.updateOne({ user_id }, { $set: { last_seen: new Date() } });
+    const current_time = new Date();
+    await accounts_coll.updateOne({ user_id }, { $set: { last_seen: current_time } });
+
+    return current_time;
 }
 
 module.exports = { getUserInfo, addSocketId, removeSocketIds, manageActiveSocketIds, updateLastSeen };

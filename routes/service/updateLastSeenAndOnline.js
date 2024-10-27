@@ -17,7 +17,7 @@ router.post("/", async (req, res) => {
 
         const accounts_coll = client.db("LinkUp").collection("accounts");
         const result = await accounts_coll.updateOne({ user_id: user_id }, 
-            { $set: { last_seen: null, settings: { last_seen_and_online: new_value }}});
+            { $set: {settings: { last_seen_and_online: new_value }}});
         if (result.modifiedCount === 1) {
             // syncing with other tabs
             // LSAS : last seen and status
@@ -26,7 +26,7 @@ router.post("/", async (req, res) => {
             if (new_value) {
                 io.to(user_id).emit("user_connected", user_id);
             } else {
-                io.to(user_id).emit("user_disconnected", user_id);
+                io.to(user_id).emit("user_disconnected", {user_id: user_id, last_seen: null});
             }
             return res.status(200).send();
         }

@@ -42,7 +42,10 @@ io.on("connection", async (socket) => {
 
     // broadcast the current user online status
     // if user is connected to only one socket (i.e. the current socket)
-    if (active_socket_ids.length == 1) socket.broadcast.in(socket.user.user_id).emit("user_connected", socket.user.user_id);
+    // and user has enabled last seen and online
+    if (active_socket_ids.length == 1 && userInfo.settings.last_seen_and_online){ 
+        socket.broadcast.in(socket.user.user_id).emit("user_connected", socket.user.user_id);
+    }
 
     /* ********* EVENT: DISCONNECT ********* */
     socket.on("disconnect", async (reason) => onDisconnect(socket, reason));
