@@ -52,6 +52,7 @@ router.post("/", async (req, res) => {
             projection.display_name = 1;
             projection.profile_img = 1;
             projection.bgColor = 1;
+            projection.username = 1;
         }
 
         // getting contact's user data
@@ -88,8 +89,15 @@ router.post("/", async (req, res) => {
                 res_to_send.profile_img = user_to_add.profile_img;
                 res_to_send.bgColor = user_to_add.bgColor;
                 res_to_send.user_id = contact_user_id;
+                res_to_send.username = user_to_add.username;
 
-                io.to(current_user_info.socket_room_id).emit("newContact", res_to_send);
+                // informing other user's sockets
+                current_user_info.socket_ids.forEach(socket_id => {
+                    if (socket_id != req.body.socket_id) { // skipping the socket which added the contact
+                        io.to(socket_id).emit("newContact", res_to_send);
+                    }
+
+                })
             }
         }
         else {
