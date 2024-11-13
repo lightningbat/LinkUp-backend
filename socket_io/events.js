@@ -3,7 +3,7 @@ const verifyToken = require("../middlewares/socketio/auth");
 const { black, bgGreen, bgRed, bgBlue } = require('ansis')
 const { getUserInfo, manageActiveSocketIds } = require("./utils");
 
-const { onDisconnect } = require("./event_functions");
+const { onDisconnect, sendMsg, reset_unread_count } = require("./event_functions");
 
 io.use(verifyToken);
 
@@ -11,7 +11,7 @@ io.on("connection", async (socket) => {
     // getting user info from database
     const userInfo = await getUserInfo(socket.user.user_id)
 
-    // getting user info from returned data from database
+    // getting user info from fetched data
     const user_socket_ids = userInfo?.socket_ids || [];
     let user_contacts = [];
     if (userInfo?.chat_contacts) {
@@ -53,8 +53,14 @@ io.on("connection", async (socket) => {
     /* ********* EVENT: JOIN NEW CONTACT ROOM ********* */
     // front-end informing about adding a new contact
     // => to join the newly added contact's room, to get real time updates of the contact
-    // e.g. real time online status, change of display name and profile image, etc
+    // e.g. real time online status, change of display name, etc
     socket.on("join_new_contact_room", (contact_id) => {
         socket.join(contact_id);
     });
+
+    /* ********* EVENT: SEND MESSAGE ********* */
+    socket.on("send_msg", (payload, callback) => sendMsg(socket, payload, callback));
+
+    /* ********* EVENT: RESET UNREAD COUNT ********* */
+    socket.on("reset_unread_count", (contact_id) => reset_unread_count(socket, contact_id));
 })
