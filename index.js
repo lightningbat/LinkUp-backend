@@ -11,7 +11,14 @@ const { app, httpServer } = require('./config/webSocket');
 /* ***** SOCKET IO ***** */
 require('./socket_io/events');
 
-app.use(cors())
+app.use(
+    cors({
+        origin: [
+            "http://localhost:5173",
+            "http://192.168.43.79:5173",],
+        methods: ["POST"],
+    })
+)
 
 // This catches any uncaught errors that occur in the Node.js process and logs them to the console.
 // This is useful for catching any errors that occur outside of the normal error handling mechanisms of the application.
@@ -74,7 +81,6 @@ app.use("/getUser", require('./routes/service/getUser'));
 app.use("/findUser", require('./routes/service/findUser'));
 app.use("/addContact", require('./routes/service/addContact'));
 app.use("/getContactsDetail", require('./routes/service/getContactsDetail'));
-// called when user was temporarily disconnected from socket
 app.use("/getContactsOnlineStatus", require('./routes/service/getContactsOnlineStatus'));
 app.use("/updateProfile", require('./routes/service/updateProfile'));
 app.use("/updateLastSeenAndOnline", require('./routes/service/updateLastSeenAndOnline'));

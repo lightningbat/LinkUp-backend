@@ -27,7 +27,8 @@ router.post("/", async (req, res) => {
                 user_id: 1,
                 settings: { last_seen_and_online: 1 },
                 socket_ids: 1,
-                last_seen: 1
+                last_seen: 1,
+                chat_contacts: {[userId]: 1}
             } }).toArray();
 
         if (!response || response.length === 0) {
@@ -60,6 +61,13 @@ router.post("/", async (req, res) => {
             if (inactive_socket_ids.length) {
                 accounts_coll.updateOne({ user_id: contact.user_id }, 
                     { $pull: { socket_ids: { $in: [...inactive_socket_ids] } } });
+            }
+
+            // checking if contact has blocked the current user
+            if (contact?.chat_contacts?.[userId]?.blocked) {
+                // setting default value of online and last seen (i.e. online: false, last_seen: null)
+                contacts_online_status[contact.user_id] = contact_data;
+                continue;
             }
 
             if (contact.settings.last_seen_and_online) { // if user has enabled last seen and online
