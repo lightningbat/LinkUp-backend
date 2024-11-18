@@ -12,7 +12,7 @@ router.post("/", async (req, res) => {
         try {
             await joi.boolean().required().validateAsync(new_value);
         } catch (err) {
-            return res.status(400).json({ type: err.details[0].context.label, message: err.message });
+            return res.status(400).send(err.message);
         }
 
         const accounts_coll = client.db("LinkUp").collection("accounts");

@@ -15,7 +15,7 @@ router.post("/", async (req, res) => {
         try {
             await display_name_schema.validateAsync(req.body);
         }catch (err) {
-            return res.status(400).json({ type: err.details[0].context.label, message: err.message });
+            return res.status(400).send(err.message);
         }
 
         // generating username

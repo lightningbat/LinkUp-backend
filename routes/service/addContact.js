@@ -11,13 +11,13 @@ router.post("/", async (req, res) => {
         const { user_id } = req.user;
 
         if (!contact_user_id) {
-            return res.status(400).send("Please provide user_id to add");
+            return res.status(400).send("Missing contact's user ID");
         }
         try {
-            await joi.string().min(1).max(200).validateAsync(contact_user_id);
+            await joi.string().guid({ version: 'uuidv4' }).required().validateAsync(contact_user_id);
         }
         catch (err) {
-            return res.status(400).json({ type: err.details[0].context.label, message: err.message });
+            return res.status(400).send(err.message);
         }
 
         if (contact_user_id === user_id) {

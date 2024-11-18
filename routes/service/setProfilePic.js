@@ -9,7 +9,7 @@ router.post("/", async (req, res) => {
             await joi.string().dataUri().required().validateAsync(req.body.image);
         }
         catch (err) {
-            return res.status(400).json({ type: err.details[0].context.label, message: err.message });
+            return res.status(400).send(err.message);
         }
         const userId = req.user.user_id;
         const accounts_coll = client.db("LinkUp").collection("accounts");
